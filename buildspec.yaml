@@ -1,0 +1,34 @@
+version: 0.2
+phases:
+  pre_build:
+    on-failure: ABORT
+    commands:
+      #  login ecr
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+
+      # Gerar Hash Commit
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+    finally:
+      - echo Pre-build Finalized
+  build:
+    on-failure: ABORT
+    commands:
+      - REPOSITORY_URI="$ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/$CONTAINER_NAME"
+      # Build da Imagem
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+    finally:
+      - echo Build Finalized
+  post_build:
+    on-failure: ABORT
+    commands:
+      # Push da Imagem para o ecs
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+
+      # Gerador do imagedefinitions.json
+      - printf '[{"name":"%s","imageUri":"%s"}]' $CONTAINER_NAME $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+
+artifacts:
+  files: imagedefinitions.json
