@@ -139,8 +139,11 @@ public class AmazonS3Service {
     } catch (Exception e) {
       throw new S3ExceptionHandler("Error to download file.");
     } finally {
-      s3Object.close();
-      inputStream.close();
+      if(s3Object != null){
+        s3Object.close();
+      }if(inputStream != null){
+        inputStream.close();
+      }
     }
   }
 
