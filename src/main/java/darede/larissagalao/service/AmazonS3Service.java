@@ -141,7 +141,8 @@ public class AmazonS3Service {
     } finally {
       if(s3Object != null){
         s3Object.close();
-      }if(inputStream != null){
+      }
+      if(inputStream != null){
         inputStream.close();
       }
     }
